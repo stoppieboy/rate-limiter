@@ -16,24 +16,24 @@ A blazing-fast, production-ready rate limiter built in Go (Gin), powered by Redi
 
 🧪 Tested – Unit tests for Lua script, middleware, and metrics.
 
-# ⚙️ How It Works
+## ⚙️ How It Works
 
 ### 1. Token Bucket Algorithm
 
-  - Each request tries to consume a token from its bucket.
+- Each request tries to consume a token from its bucket.
 
-  - If available → token is decremented and request proceeds.
+- If available → token is decremented and request proceeds.
 
-  - If empty → request is rejected with 429 Too Many Requests.
+- If empty → request is rejected with 429 Too Many Requests.
 
 ### 2. Redis Lua Script
 
-  - Atomic refill & consume in a single round trip.
+- Atomic refill & consume in a single round trip.
 
-  - Prevents race conditions under high concurrency.
+- Prevents race conditions under high concurrency.
 
 ### 3. Prometheus Integration
 
-  - Exposes metrics: allowed requests, rejections, bucket usage, request latency.
+- Exposes metrics: allowed requests, rejections, bucket usage, request latency.
 
-  - Compatible with Grafana dashboards for monitoring.
+- Compatible with Grafana dashboards for monitoring.
