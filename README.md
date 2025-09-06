@@ -1,4 +1,4 @@
-🚦 High-Throughput Rate Limiter (Gin + Redis + Lua + Prometheus)
+# 🚦 High-Throughput Rate Limiter (Gin + Redis + Lua + Prometheus)
 
 A blazing-fast, production-ready rate limiter built in Go (Gin), powered by Redis Lua scripts for atomic token bucket operations, and instrumented with Prometheus & Grafana for real-time monitoring and observability.
 
@@ -16,9 +16,7 @@ A blazing-fast, production-ready rate limiter built in Go (Gin), powered by Redi
 
 🧪 Tested – Unit tests for Lua script, middleware, and metrics.
 
----
-
-⚙️ How It Works
+# ⚙️ How It Works
 
 Token Bucket Algorithm
 
