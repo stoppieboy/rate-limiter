@@ -7,10 +7,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+// func init() {
+// 	gin.SetMode(gin.ReleaseMode)
+// }
 
 func main() {
 	defer middleware.Rdb.Close()
 	router := gin.Default()
+	// router.SetTrustedProxies([]string{"localhost"})
 	// router.Use(middleware.RateLimiter())
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.GET("/ping",  middleware.RateLimiter(), func( c *gin.Context) {
