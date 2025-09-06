@@ -1,32 +1,33 @@
-package main
+package middleware
 
 import (
 	"context"
-	// "encoding/json"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"github.com/stoppieboy/rate-limiter-server/internal/metrics"
 )
 
 var (
-	rdb = redis.NewClient(&redis.Options{
+	Rdb = redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 	})
 	ctx = context.Background()
 )
 
 type Data struct {
-	Allowed int64
+	Allowed          int64
 	Remaining_tokens int64
-	MS int64
-	Server_time int64
+	MS               int64
+	Server_time      int64
 }
 
 func RateLimiter() gin.HandlerFunc {
-	return func (c *gin.Context){
+	return func(c *gin.Context) {
 		t := time.Now()
 		c.Set("token", "12345")
 		// redis script calling
@@ -35,7 +36,9 @@ func RateLimiter() gin.HandlerFunc {
 		keys := []string{"bucket"}
 		// capacity, refill_rate, requested, now_millis
 		args := []interface{}{100, 2, 50}
-		data, err := tokenBucketScript.Run(ctx, rdb, keys, args).Result()
+		scriptStart := time.Now()
+		data, err := tokenBucketScript.Run(ctx, Rdb, keys, args).Result()
+		metrics.RedisOpDuration.WithLabelValues("lua_token_bucket").Observe(time.Since(scriptStart).Seconds())
 		// err = rdb.Set(ctx, "car", "Lambo", 0).Err()
 		if err != nil {
 			panic(err)
@@ -57,30 +60,19 @@ func RateLimiter() gin.HandlerFunc {
 		// json.Unmarshal(byteData, &receivedData)
 
 		// log.Printf("Allowed: %v, remaining tokens: %v, MS until next token: %v, server time: %v\n",receivedData.Allowed, receivedData.Remaining_tokens, receivedData.MS, receivedData.Server_time)
-		if val.Allowed == 1{
+		path := c.Request.URL.String()
+		if val.Allowed == 1 {
 			c.Next()
+			metrics.HTTPRequestTotal.WithLabelValues(c.Request.Method, path, strconv.Itoa(c.Writer.Status()))
+			metrics.HTTPRequestDuration.WithLabelValues(c.Request.Method, path).Observe(time.Since(t).Seconds())
 		} else {
+			metrics.RateLimitedTotal.WithLabelValues(path).Inc()
+			metrics.HTTPRequestTotal.WithLabelValues(c.Request.Method, path, "429")
 			c.AbortWithStatusJSON(429, gin.H{"message": "Rate Limit Exceeded"})
+			metrics.HTTPRequestDuration.WithLabelValues(c.Request.Method, path).Observe(time.Since(t).Seconds())
 		}
 
-
 		latency := time.Since(t)
-		log.Print("Latency: ",latency)
+		log.Print("Latency: ", latency)
 	}
-}
-
-func main() {
-	defer rdb.Close()
-	router := gin.Default()
-	router.Use(RateLimiter())
-	router.GET("/ping", func( c *gin.Context) {
-		token := c.MustGet("token").(string)
-		for i:=0;i<100000000;i++{}
-		c.JSON(200, gin.H{
-			"message": "pong",
-			"token": token,
-		})
-	})
-
-	router.Run(":3000")
 }
